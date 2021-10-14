@@ -48,16 +48,15 @@ function isUwTableExist() {
 
 function getRemoteUwAccountId() {
 	$account_id = '';
-
-	$url = 'https://api.userway.org/api/v1/users/account-by-site';
+	$apiUrl     = 'https://api.userway.org/api/v1/users/account-by-site';
 
 	$args = array(
 		'body' => array(
-			"site" => $url,
+			'site' => $_SERVER['HTTP_HOST'],
 		)
 	);
 
-	$response      = wp_remote_post( $url, $args );
+	$response      = wp_remote_post( $apiUrl, $args );
 	$response_code = wp_remote_retrieve_response_message( $response );
 
 	if ( $response_code === 'OK' ) {
@@ -66,8 +65,6 @@ function getRemoteUwAccountId() {
 		if ( isset( $response_body['account'] ) ) {
 			$account_id = $response_body['account'];
 		}
-
-		var_dump( $response_body );
 	}
 
 	return $account_id;
