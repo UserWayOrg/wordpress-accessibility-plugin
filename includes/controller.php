@@ -93,7 +93,7 @@ class Userway_REST_Widget_Controller extends WP_REST_Controller
     /**
      * @return string[]
      */
-    public function permissions_check($request)
+    public function permissions_check()
     {
         return current_user_can('administrator');
     }
