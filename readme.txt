@@ -71,6 +71,8 @@ fix remove debug sensitive data
 fix enable widget endpoint
 = 2.3.8 =
 fix change Iframe Widget Url
+= 2.3.9 =
+fix debug rest endpoint permission_callback function
 *
 *Added translations for the plugin:
 *Arabic [ar];

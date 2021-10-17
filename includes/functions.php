@@ -34,3 +34,55 @@ function removeUwTable() {
 
 	$wpdb->get_results( $sql );
 }
+
+function isUwTableExist() {
+	global $wpdb;
+	$table_name  = $wpdb->prefix . 'userway';
+	$table_exist = false;
+	if ( $wpdb->get_var( "SHOW TABLES LIKE '$table_name'" ) == $table_name ) {
+		$table_exist = true;
+	}
+
+	return $table_exist;
+}
+
+function getRemoteUwAccountId() {
+	$account_id = null;
+	$apiUrl     = 'https://api.qa.userway.dev/api/v1/users/account-by-site';
+
+	$args = array(
+		'body' => array(
+			'site' => $_SERVER['HTTP_HOST'],
+		)
+	);
+
+	$response      = wp_remote_post( $apiUrl, $args );
+	$response_code = wp_remote_retrieve_response_message( $response );
+
+	if ( $response_code === 'OK' ) {
+		$response_body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( isset( $response_body['account'] ) ) {
+			$account_id = $response_body['account'];
+		}
+	}
+
+	return $account_id;
+}
+
+function getUwAccount() {
+	global $wpdb;
+
+	$table_name = $wpdb->prefix . 'userway';
+	$account    = null;
+	$dbData     = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 0, 1" );
+
+	if ( isset( $dbData[0] ) ) {
+		$account = [
+			'account_id' => $dbData[0]->account_id,
+			'state'      => $dbData[0]->state,
+		];
+	}
+
+	return $account;
+}
