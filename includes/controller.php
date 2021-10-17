@@ -8,10 +8,6 @@ class Userway_REST_Widget_Controller extends WP_REST_Controller
     /**
      * @const string
      */
-    const REST_ADMINISRATOR_ROLE = 'administrator';
-    /**
-     * @const string
-     */
     const REQUEST_BODY_ACCOUNT_PARAM = 'account';
     /**
      * @const string
