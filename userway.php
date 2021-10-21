@@ -40,14 +40,35 @@ usw_userway_load();
 function usw_addplugin_footer_notice() {
 	global $wpdb;
 
-	$tableName = $wpdb->prefix . 'userway';
-	$account   = $wpdb->get_results( "SELECT * FROM $tableName LIMIT 0, 1" )[0];
+	$table_exist = isUwTableExist();
+	$table_name  = $wpdb->prefix . 'userway';
+	$date        = date( "Y-m-d H:i:s" );
 
-	if ( isset( $account->account_id ) && mb_strlen( $account->account_id ) > 0 && (boolean) $account->state === true ) {
+	if ( ! $table_exist ) {
+		initUwTable();
+	}
+
+	$account = getUwAccount();
+
+	if ( ! isset( $account ) ) {
+		$account = getRemoteUwAccountId();
+		if ( $account ) {
+			$wpdb->insert( $table_name, [
+				'account_id'   => $account,
+				'state'        => true,
+				'created_time' => $date,
+				'updated_time' => $date,
+			] );
+		}
+	}
+
+	$account = getUwAccount();
+
+	if ( isset( $account['account_id'] ) && mb_strlen( $account['account_id'] ) > 0 && isset( $account['state'] ) && (boolean) $account['state'] === true ) {
 		echo "<script>
               (function(e){
                   var el = document.createElement('script');
-                  el.setAttribute('data-account', '" . $account->account_id . "');
+                  el.setAttribute('data-account', '" . $account['account_id'] . "');
                   el.setAttribute('src', 'https://cdn.userway.org/widget.js');
                   document.body.appendChild(el);
                 })();

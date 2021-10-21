@@ -8,10 +8,6 @@ class Userway_REST_Widget_Controller extends WP_REST_Controller
     /**
      * @const string
      */
-    const REST_ADMINISRATOR_ROLE = 'administrator';
-    /**
-     * @const string
-     */
     const REQUEST_BODY_ACCOUNT_PARAM = 'account';
     /**
      * @const string
@@ -51,15 +47,9 @@ class Userway_REST_Widget_Controller extends WP_REST_Controller
         register_rest_route($this->namespace, '/debug', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [$this, 'debug'],
-            'args' => [
-                'token' => [
-                    'default' => '',
-                    'required' => true,
-                    'validate_callback' => function($param, $request, $key) {
-                        return 'aEVy5y6fjVipAFZXjl6M' === $param;
-                    }
-                ]
-            ]
+            'permission_callback' => function () {
+	            return true;
+            },
         ]);
     }
 
@@ -82,7 +72,7 @@ class Userway_REST_Widget_Controller extends WP_REST_Controller
                 'php' => phpversion(),
                 'wordpress' => $wp_version,
                 'userway' => [
-                    'version' => '2.3.8',
+                    'version' => '2.3.9',
                     'account' => $account,
                     'table' => $this->tableName,
                     'tableExist' => $userway_table_exist,
@@ -101,10 +91,15 @@ class Userway_REST_Widget_Controller extends WP_REST_Controller
      */
     public function permissions_check()
     {
-        $user = wp_get_current_user();
-        $allowed_roles = [self::REST_ADMINISRATOR_ROLE];
+        return current_user_can('administrator');
+    }
 
-        return array_intersect($allowed_roles, $user->roles);
+	/**
+     * @return string[]
+     */
+    public function permissions_check_debug()
+    {
+        return true;
     }
 
     /**
