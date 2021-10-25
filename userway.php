@@ -69,7 +69,7 @@ function usw_addplugin_footer_notice() {
               (function(e){
                   var el = document.createElement('script');
                   el.setAttribute('data-account', '" . $account['account_id'] . "');
-                  el.setAttribute('src', 'https://cdn.userway.org/widget.js');
+                  el.setAttribute('src', 'https://cdn.qa.userway.dev/widget.js');
                   document.body.appendChild(el);
                 })();
               </script>";

@@ -29,7 +29,7 @@ function usw_userway_settings_page()
     $url = urlencode((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST']);
     $nonceCode = wp_create_nonce('wp_rest');
 
-    $widgetUrl = "https://api.userway.org/api/apps/wp?storeUrl={$url}";
+    $widgetUrl = "https://api.qa.userway.dev/api/apps/wp?storeUrl={$url}";
     if ($accountDb) {
         if (isset($accountDb->account_id)) {
             $widgetUrl .= "&account_id={$accountDb->account_id}";
