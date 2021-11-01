@@ -72,7 +72,7 @@ class Userway_REST_Widget_Controller extends WP_REST_Controller
                 'php' => phpversion(),
                 'wordpress' => $wp_version,
                 'userway' => [
-                    'version' => '2.4.1',
+                    'version' => '2.4.2',
                     'account' => $account,
                     'table' => $this->tableName,
                     'tableExist' => $userway_table_exist,
