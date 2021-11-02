@@ -55,11 +55,12 @@ function usw_userway_settings_page()
             const MESSAGE_ACTION_TOGGLE = 'WIDGET_TOGGLE';
             const MESSAGE_ACTION_SIGNUP = "WIDGET_SIGNUP";
             const MESSAGE_ACTION_SIGNIN = "WIDGET_SIGNIN";
+            const siteUrl = '<?= get_site_url(); ?>';
 
             const request = (data) => {
                 return jQuery.when(
                     jQuery.ajax({
-                        url: '/wp-json/userway/v1/save',
+                        url: siteUrl + '/wp-json/userway/v1/save',
                         type: 'POST',
                         contentType: 'application/json',
                         dataType: 'json',
