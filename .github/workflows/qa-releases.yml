@@ -5,7 +5,7 @@ on:
     branches:
       - qa
     paths:
-      - '!.VERSION'
+      - '.VERSION'
 
 jobs:
   build:
