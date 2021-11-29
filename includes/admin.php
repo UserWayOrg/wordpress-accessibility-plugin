@@ -8,39 +8,37 @@ $true_page = 'userway';
 
 require_once( USW_USERWAY_DIR . 'includes/functions.php' );
 
-function usw_userway_settings()
-{
-    add_options_page('UserWay', 'UserWay', 'manage_options', 'userway', 'usw_userway_settings_page');
+function usw_userway_settings() {
+	add_options_page( 'UserWay', 'UserWay', 'manage_options', 'userway', 'usw_userway_settings_page' );
 }
 
-add_action('admin_menu', 'usw_userway_settings');
+add_action( 'admin_menu', 'usw_userway_settings' );
 
 /**
  *
  */
-function usw_userway_settings_page()
-{
+function usw_userway_settings_page() {
 	initUwTable();
 	global $wpdb;
 
 	$tableName = $wpdb->prefix . 'userway';
-    $accountDb = $wpdb->get_row("SELECT * FROM {$tableName} LIMIT 1");
+	$accountDb = $wpdb->get_row( "SELECT * FROM {$tableName} LIMIT 1" );
 
-    $url = urlencode((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST']);
-    $nonceCode = wp_create_nonce('wp_rest');
+	$url       = urlencode( ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] );
+	$nonceCode = wp_create_nonce( 'wp_rest' );
 
-    $widgetUrl = "https://api.userway.org/api/apps/wp?storeUrl={$url}";
-    if ($accountDb) {
-        if (isset($accountDb->account_id)) {
-            $widgetUrl .= "&account_id={$accountDb->account_id}";
-        }
-        if (isset($accountDb->state)) {
-            $state = $accountDb->state ? 'true' : 'false';
-            $widgetUrl .= "&active=${state}";
-        }
-    }
+	$widgetUrl = "https://api.userway.org/api/apps/wp?storeUrl={$url}";
+	if ( $accountDb ) {
+		if ( isset( $accountDb->account_id ) ) {
+			$widgetUrl .= "&account_id={$accountDb->account_id}";
+		}
+		if ( isset( $accountDb->state ) ) {
+			$state     = $accountDb->state ? 'true' : 'false';
+			$widgetUrl .= "&active=${state}";
+		}
+	}
 
-    ?>
+	?>
     <div>
         <iframe
                 id="userway-frame"
@@ -60,12 +58,12 @@ function usw_userway_settings_page()
             const request = (data) => {
                 return jQuery.when(
                     jQuery.ajax({
-                        url: siteUrl + '/wp-json/userway/v1/save',
+                        url: `${siteUrl}/index.php?rest_route=/userway/v1/save`,
                         type: 'POST',
                         contentType: 'application/json',
                         dataType: 'json',
-                        beforeSend : function ( xhr ) {
-                            xhr.setRequestHeader( 'X-WP-Nonce', '<?php echo $nonceCode ?>' );
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader('X-WP-Nonce', '<?php echo $nonceCode ?>');
                         },
                         data: JSON.stringify(data),
                     })
@@ -88,20 +86,15 @@ function usw_userway_settings_page()
                     if (postMessage.source !== frameContentWindow || !isPostMessageValid(postMessage)) {
                         return;
                     }
-
                     console.log('[userway/v1/postMassage]', postMessage);
-
-                    const requestPayload = {
+                    request({
                         account: postMessage.data.account,
                         state: postMessage.data.state,
-                    }
-
-                    request(requestPayload)
-                        .then(res => console.log(res))
+                    }).then(res => console.log(res))
                         .catch(err => console.error(err));
                 });
             });
         </script>
     </div>
-    <?php
+	<?php
 }

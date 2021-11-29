@@ -75,6 +75,15 @@ fix change Iframe Widget Url
 fix debug rest endpoint permission_callback function
 = 2.4.2 =
 fix blog url in AJAX requests
+= 2.4.3 =
+update assets
+= 2.4.4 =
+update screenshot images
+= 2.4.5 =
+update screenshot images
+= 2.4.6 =
+change endpoint to non permalinks
+
 *
 *Added translations for the plugin:
 *Arabic [ar];
