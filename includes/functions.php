@@ -48,7 +48,7 @@ function isUwTableExist() {
 
 function getRemoteUwAccountId() {
 	$account_id = null;
-	$apiUrl     = 'https://api.userway.org/api/v1/users/account-by-site';
+	$apiUrl     = 'https://api.qa.userway.dev/api/v1/users/account-by-site';
 
 	$args = array(
 		'body' => array(

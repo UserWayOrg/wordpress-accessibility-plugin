@@ -81,7 +81,7 @@ update assets
 update screenshot images
 = 2.4.5 =
 update screenshot images
-= 2.4.6 =
+= 2.4.7 =
 change endpoint to non permalinks
 
 *
