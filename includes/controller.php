@@ -1,184 +1,105 @@
 <?php
+
 /*
     Copyright 2021  UserWay  (email: admin@userway.org)
 */
 
-class Userway_REST_Widget_Controller extends WP_REST_Controller
-{
-    /**
-     * @const string
-     */
-    const REQUEST_BODY_ACCOUNT_PARAM = 'account';
-    /**
-     * @const string
-     */
-    const REQUEST_BODY_STATE_PARAM = 'state';
+$true_page = 'userway';
 
-    /**
-     * @var string
-     */
-    protected $namespace = 'userway/v1';
-    /**
-     * @var string
-     */
-    protected $tableName;
+require_once( USW_USERWAY_DIR . 'includes/functions.php' );
 
-    /**
-     *
-     */
-    function __construct()
-    {
-        global $wpdb;
-
-        $this->tableName = $wpdb->prefix . 'userway';
-    }
-
-    /**
-     *
-     */
-    public function register_routes()
-    {
-        register_rest_route($this->namespace, '/save', [
-            'methods' => WP_REST_Server::CREATABLE,
-            'callback' => [$this, 'save'],
-            'permission_callback' => [$this, 'permissions_check'],
-        ]);
-
-        register_rest_route($this->namespace, '/debug', [
-            'methods' => WP_REST_Server::READABLE,
-            'callback' => [$this, 'debug'],
-            'permission_callback' => function () {
-	            return true;
-            },
-        ]);
-    }
-
-    public function debug()
-    {
-        $response = [];
-        try {
-            global $wp_version;
-            global $wpdb;
-
-            include_once('wp-admin/includes/plugin.php');
-
-            $userway_table_exist = false;
-            $account = $wpdb->get_results("SELECT * FROM $this->tableName LIMIT 1");
-            if ($wpdb->get_var("SHOW TABLES LIKE '$this->tableName'") == $this->tableName) {
-                $userway_table_exist = true;
-            }
-
-            $response = [
-                'php' => phpversion(),
-                'wordpress' => $wp_version,
-                'userway' => [
-                    'version' => '2.4.8',
-                    'account' => $account,
-                    'table' => $this->tableName,
-                    'tableExist' => $userway_table_exist,
-                ],
-            ];
-        } catch (Exception $e) {
-            $response['error'] = $e->getTraceAsString();
-            $response['message'] = $e->getMessage();
-        }
-
-        return wp_send_json($response, 200);
-    }
-
-    /**
-     * @return string[]
-     */
-    public function permissions_check()
-    {
-        return current_user_can('administrator');
-    }
-
-	/**
-     * @return string[]
-     */
-    public function permissions_check_debug()
-    {
-        return true;
-    }
-
-    /**
-     * @param $request
-     * @return WP_Error|WP_HTTP_Response|WP_REST_Response
-     */
-    public function save($request)
-    {
-        global $wpdb;
-
-        $requestBody = $request->get_json_params();
-        $accountId = isset($requestBody[self::REQUEST_BODY_ACCOUNT_PARAM]) ? $requestBody[self::REQUEST_BODY_ACCOUNT_PARAM] : null;
-        $state = isset($requestBody[self::REQUEST_BODY_STATE_PARAM]) ? $requestBody[self::REQUEST_BODY_STATE_PARAM] : false;
-        $date = $this->getDate();
-        $accountModel = $this->getAccountModel();
-
-        if ($accountId === null) {
-            return rest_ensure_response($this->prepareResponseMessage('request payload is invalid'));
-        }
-
-        if ($accountModel) {
-            $wpdb->update($this->tableName, [
-                'state' => $state,
-                'account_id' => $accountId,
-                'updated_time' => $date,
-            ], ['account_id' => $accountModel->account_id]);
-
-            return rest_ensure_response($this->prepareResponseMessage('account successfully saved'));
-        }
-
-        $wpdb->insert($this->tableName, [
-            'account_id' => $accountId,
-            'state' => $state,
-            'created_time' => $date,
-            'updated_time' => $date,
-        ]);
-
-        return rest_ensure_response($this->prepareResponseMessage('account successfully created'));
-    }
-
-    /**
-     * @param string $message
-     * @return string
-     */
-    private function prepareResponseMessage($message = '')
-    {
-        $date = $this->getDate();
-
-        return "{$date} [{$this->namespace}]: {$message}";
-    }
-
-    /**
-     * @return mixed | null
-     */
-    private function getAccountModel()
-    {
-        global $wpdb;
-
-        $account = $wpdb->get_results("SELECT * FROM $this->tableName LIMIT 1");
-
-        return isset($account[0]) ? $account[0] : null;
-    }
-
-    /**
-     * @return string
-     */
-    private function getDate()
-    {
-        return date("Y-m-d H:i:s");
-    }
+function usw_userway_settings() {
+	add_menu_page( 'UserWay', 'UserWay', 'manage_options', 'userway', 'usw_userway_settings_page', 'dashicons-universal-access-alt' );
 }
+
+add_action( 'admin_menu', 'usw_userway_settings' );
 
 /**
  *
  */
-function usw_register_rest_routes()
-{
-    $controller = new Userway_REST_Widget_Controller();
-    $controller->register_routes();
-}
+function usw_userway_settings_page() {
+	initUwTable();
+	global $wpdb;
 
-add_action('rest_api_init', 'usw_register_rest_routes');
+	$tableName = $wpdb->prefix . 'userway';
+	$accountDb = $wpdb->get_row( "SELECT * FROM {$tableName} LIMIT 1" );
+
+	$url       = urlencode( ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] );
+	$nonceCode = wp_create_nonce( 'wp_rest' );
+
+	$widgetUrl = "https://qa.userway.dev/api/apps/wp?storeUrl={$url}";
+	if ( $accountDb ) {
+		if ( isset( $accountDb->account_id ) ) {
+			$widgetUrl .= "&account_id={$accountDb->account_id}";
+		}
+		if ( isset( $accountDb->state ) ) {
+			$state     = $accountDb->state ? 'true' : 'false';
+			$widgetUrl .= "&active=${state}";
+		}
+		if ( isset( $accountDb->site_id ) ) {
+			$widgetUrl .= "&siteId=" . $accountDb->site_id;
+		}
+	}
+
+	?>
+    <div>
+        <iframe
+                id="userway-frame"
+                src="<?php echo $widgetUrl ?>"
+                title="UserWay Widget"
+                width="100%"
+                height="1180px"
+                style="border: none;"
+        >
+        </iframe>
+        <script type="text/javascript">
+            const MESSAGE_ACTION_TOGGLE = 'WIDGET_TOGGLE';
+            const MESSAGE_ACTION_SIGNUP = "WIDGET_SIGNUP";
+            const MESSAGE_ACTION_SIGNIN = "WIDGET_SIGNIN";
+            const siteUrl = '<?= get_site_url(); ?>';
+
+            const request = (data) => {
+                return jQuery.when(
+                    jQuery.ajax({
+                        url: `${siteUrl}/index.php?rest_route=/userway/v1/save`,
+                        type: 'POST',
+                        contentType: 'application/json',
+                        dataType: 'json',
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader('X-WP-Nonce', '<?php echo $nonceCode ?>');
+                        },
+                        data: JSON.stringify(data),
+                    })
+                )
+            };
+
+            const isPostMessageValid = (postMessage) => {
+                return postMessage.data !== undefined
+                    && postMessage.data.action
+                    && postMessage.data.account !== undefined
+                    && postMessage.data.state !== undefined
+                    && postMessage.data.siteId !== undefined
+                    && [MESSAGE_ACTION_TOGGLE, MESSAGE_ACTION_SIGNUP, MESSAGE_ACTION_SIGNIN].includes(postMessage.data.action)
+            }
+
+            jQuery(document).ready(function () {
+                const selector = document.getElementById('userway-frame');
+                const frameContentWindow = selector.contentWindow;
+                const {url} = selector.dataset;
+                window.addEventListener('message', postMessage => {
+                    if (postMessage.source !== frameContentWindow || !isPostMessageValid(postMessage)) {
+                        return;
+                    }
+                    console.log('[userway/v1/postMassage]', postMessage);
+                    request({
+                        account: postMessage.data.account,
+                        state: postMessage.data.state,
+                        siteId: postMessage.data.siteId,
+                    }).then(res => console.log(res))
+                        .catch(err => console.error(err));
+                });
+            });
+        </script>
+    </div>
+	<?php
+}

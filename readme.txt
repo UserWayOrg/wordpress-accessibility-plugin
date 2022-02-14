@@ -3,7 +3,7 @@ Contributors: UserWay.org
 Tags: userway, accessibility, a11y, WCAG, Section 508, web accessibility, handicap, disabled, blind, visually impaired,
 accessibility widget, accessibility plugin, contrast, text size, cursor, keyboard navigation, color saturation, legible fonts
 Requires at least: 4.7.2
-Tested up to: 5.8
+Tested up to: 5.9
 Stable tag: 5.7.2
 == Description ==
 **About UserWay’s Widget**
@@ -83,6 +83,8 @@ update screenshot images
 update screenshot images
 = 2.4.8 =
 change endpoint to non permalinks
+= 2.4.9 =
+change Admin menu location and icon
 
 *
 *Added translations for the plugin:

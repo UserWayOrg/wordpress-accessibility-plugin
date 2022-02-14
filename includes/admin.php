@@ -9,7 +9,7 @@ $true_page = 'userway';
 require_once( USW_USERWAY_DIR . 'includes/functions.php' );
 
 function usw_userway_settings() {
-	add_options_page( 'UserWay', 'UserWay', 'manage_options', 'userway', 'usw_userway_settings_page' );
+	add_menu_page( 'UserWay', 'UserWay', 'manage_options', 'userway', 'usw_userway_settings_page', 'dashicons-universal-access-alt' );
 }
 
 add_action( 'admin_menu', 'usw_userway_settings' );
@@ -35,6 +35,9 @@ function usw_userway_settings_page() {
 		if ( isset( $accountDb->state ) ) {
 			$state     = $accountDb->state ? 'true' : 'false';
 			$widgetUrl .= "&active=${state}";
+		}
+		if ( isset( $accountDb->site_id ) ) {
+			$widgetUrl .= "&siteId=" . $accountDb->site_id;
 		}
 	}
 
@@ -75,6 +78,7 @@ function usw_userway_settings_page() {
                     && postMessage.data.action
                     && postMessage.data.account !== undefined
                     && postMessage.data.state !== undefined
+                    && postMessage.data.siteId !== undefined
                     && [MESSAGE_ACTION_TOGGLE, MESSAGE_ACTION_SIGNUP, MESSAGE_ACTION_SIGNIN].includes(postMessage.data.action)
             }
 
@@ -90,6 +94,7 @@ function usw_userway_settings_page() {
                     request({
                         account: postMessage.data.account,
                         state: postMessage.data.state,
+                        siteId: postMessage.data.siteId,
                     }).then(res => console.log(res))
                         .catch(err => console.error(err));
                 });
