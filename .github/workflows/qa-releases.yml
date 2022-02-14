@@ -2,10 +2,10 @@ name: QA-Release
 
 on:
   push:
-    paths:
-      - .VERSION
     branches:
       - qa
+    paths:
+      - '.VERSION'
 
 jobs:
   build:
