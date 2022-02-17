@@ -8,7 +8,8 @@ function initUwTable() {
 	$table_name      = $wpdb->prefix . 'userway';
 	$charset_collate = $wpdb->get_charset_collate();
 
-	$sql = "CREATE TABLE ${table_name} (
+	$sql = "
+    CREATE TABLE IF NOT EXISTS `$table_name` (
         `preference_id` INT(10) NOT NULL AUTO_INCREMENT,
         `account_id`    VARCHAR(255) NOT NULL,
         `site_id`    	INT NOT NULL,
@@ -16,7 +17,8 @@ function initUwTable() {
 		`created_time`  DATETIME DEFAULT CURRENT_TIMESTAMP,
         `updated_time`  DATETIME ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`preference_id`)
-    ) ${charset_collate}";
+    ) $charset_collate
+    ";
 
 	if ( ! function_exists( 'dbDelta' ) ) {
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
@@ -47,7 +49,7 @@ function isUwTableExist() {
 
 function getRemoteUwAccountId() {
 	$account_id = null;
-	$apiUrl     = 'https://api.userway.org/api/v1/users/account-by-site';
+	$apiUrl     = 'https://api.qa.userway.dev/api/v1/users/account-by-site';
 
 	$args = array(
 		'body' => array(
@@ -80,7 +82,6 @@ function getUwAccount() {
 		$account = [
 			'account_id' => $dbData[0]->account_id,
 			'state'      => $dbData[0]->state,
-			'site_id'    => $dbData[0]->site_id,
 		];
 	}
 
