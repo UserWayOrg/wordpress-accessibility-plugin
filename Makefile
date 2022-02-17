@@ -1,6 +1,6 @@
 SHELL = /bin/sh
 
-all: clean build
+all: clean build clean
 
 clean:
 	rm -rf *.zip wordpress-accessibility-plugin
