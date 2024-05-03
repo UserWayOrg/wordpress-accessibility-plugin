@@ -73,7 +73,7 @@ function admin_notice__success() {
             min-width: 0;
             padding: 15px 20px;
             position: relative;
-            width: 10%;
+            width: 180px;
             text-decoration: none;
             margin-top: 15px;
             margin-bottom: 15px;
