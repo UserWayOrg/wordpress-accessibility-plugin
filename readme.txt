@@ -85,6 +85,10 @@ update screenshot images
 change endpoint to non permalinks
 = 2.4.9 =
 change Admin menu location and icon
+= 2.5.0 =
+improve README file
+= 2.5.4 =
+Implementation of Compliant Admin Notice
 
 *
 *Added translations for the plugin:
