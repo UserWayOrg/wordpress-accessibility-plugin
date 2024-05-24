@@ -1,98 +1,78 @@
 <?php
-add_filter( 'plugin_row_meta', 'plugin_custom_links', 10, 2 );
-function plugin_custom_links( $links, $file ) {
+add_filter( 'plugin_row_meta', 'usw_userway_custom_links', 10, 2 );
+function usw_userway_custom_links( $links, $file ) {
     if ( strpos( $file, 'userway.php' ) !== false ) {
-        $links[] = '<a href="../wp-admin/admin.php?page=userway">Upgrade to Pro</a>';
+        $links[] = '<a href="https://manage.userway.org/">Upgrade to Pro</a>';
         $links[] = '<a href="../wp-admin/admin.php?page=userway">Go to Dashboard</a>';
     }
     return $links;
 }
 
-function api_enqueue_script() {
-    // Get the current URL
-    $home_url = home_url();
-    
-    // Encode the URL
-    $encoded_url = urlencode($home_url);
+function usw_userway_enqueue_styles() {
+    // Register the stylesheet
+    wp_register_style(
+        'usw-userway-styles', // Handle
+        plugins_url('assets/css/style.css', __FILE__) // Path to the stylesheet
+    );
 
-    // Construct the API URL
-    $api_url = "https://api.userway.org/api/a11y-data/v0/site/{$encoded_url}/accessibility-score";
-
-    // Enqueue the JavaScript file with dependencies on jQuery and any other scripts
-    wp_enqueue_script('api-script', plugin_dir_url(__FILE__) . 'api-script.js', array('jquery'), '1.0', true);
-
-    // Pass PHP variables to JavaScript
-    wp_localize_script('api-script', 'api_script_vars', array(
-        'api_url' => $api_url
-    ));
+    // Enqueue the stylesheet
+    wp_enqueue_style('usw-userway-styles');
 }
-add_action('admin_enqueue_scripts', 'api_enqueue_script');
 
-function api_plugin_process_data() {
-    // Check if the AJAX request is coming from the correct source
-    check_ajax_referer('api-plugin-nonce', 'security');
+add_action('admin_enqueue_scripts', 'usw_userway_enqueue_styles');
 
-    // Get the data sent via AJAX
-    $data = $_POST['data'];
-
-    // Store the data in WordPress options table
-    update_option('userway_api_data', $data);
-
-    // Return a response (optional)
-    wp_send_json_success('Data received and stored successfully');
+// Hook into plugin activation to add custom admin notice
+function usw_userway_activation_notice() {
+    add_option( 'usw_userway_activation_notice', true );
 }
-add_action('wp_ajax_api_plugin_process_data', 'api_plugin_process_data');
-add_action('wp_ajax_nopriv_my_plugin_process_data', 'api_plugin_process_data'); // Allow for non-logged-in users to access the AJAX endpoint
 
-function admin_notice__success() {
-    $current_url = home_url();
-    // Check if the notice has already been displayed
-    $notice_displayed = get_option('userway_notice_displayed', false);
-    if ($notice_displayed) {
-        return; // If notice has been displayed, return early
-    }
+// Hook into admin_init to display the notice
+function usw_userway_admin_notice() {
+    global $pagenow;
+    // Generate the URL for the image
+    $image_url = plugins_url('assets/images/arrow-right.png', __FILE__);
+    if ( $pagenow === 'plugins.php' && get_option( 'usw_userway_activation_notice' ) && ! isset( $_COOKIE['usw_userway_activation_notice_dismissed'] ) ) {
+        ?>
+        <div class="notice notice-warning is-dismissible" id="plugin-activation-notice">
+ 		    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI1IiBoZWlnaHQ9IjIwIiB2aWV3Qm94PSIwIDAgMTI1IDIwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTkuOTkzNyAxNi40NDQyQzYuNDQyNjEgMTYuNDQ0MiAzLjU1MzU5IDEzLjU1NDIgMy41NTM1OSAxMFY0LjY2NjY3QzMuNTUyNzEgNC4wMTg3IDMuMjk1MDggMy4zOTc1MyAyLjgzNzE5IDIuOTM5MzVDMi4zNzkzIDIuNDgxMTcgMS43NTg1MiAyLjIyMzM4IDEuMTEwOTcgMi4yMjI1SDBWMEgxLjExMDk3QzMuNjgxMDEgMCA1Ljc3NDY5IDIuMDk0MTcgNS43NzQ2OSA0LjY2NjY3VjEwQzUuNzc1NTggMTEuMTE5NSA2LjIyMDMzIDEyLjE5MjggNy4wMTEzNCAxMi45ODQ1QzcuODAyMzQgMTMuNzc2MSA4Ljg3NDk1IDE0LjIyMTQgOS45OTM3IDE0LjIyMjVDMTEuMTEyNiAxNC4yMjE2IDEyLjE4NTQgMTMuNzc2NSAxMi45NzY2IDEyLjk4NDhDMTMuNzY3OCAxMi4xOTMxIDE0LjIxMjcgMTEuMTE5NiAxNC4yMTM1IDEwVjQuNjY2NjdDMTQuMjEzNSAyLjA5NDE3IDE2LjMwNjQgMCAxOC44NzczIDBIMTkuOTg3NFYyLjIyMjVIMTguODc3M0MxOC4yMjk2IDIuMjIzMTYgMTcuNjA4NiAyLjQ4MDg2IDE3LjE1MDUgMi45MzkwNkMxNi42OTI0IDMuMzk3MjYgMTYuNDM0NyA0LjAxODU2IDE2LjQzMzggNC42NjY2N1YxMEMxNi40MzM4IDEzLjU1NDIgMTMuNTQ1NiAxNi40NDQyIDkuOTkzNyAxNi40NDQyWk0xOS4yMTQ2IDMuNTU1ODNIMTkuOTg3NFYxMEMxOS45ODc0IDE1LjUxNSAxNS41MDQ0IDIwIDkuOTkzNyAyMEM0LjQ4MjE4IDIwIDAgMTUuNTE1IDAgMTBWMy41NTU4M0gwLjc3Mjg0NkMxLjU4MDY3IDMuNTU1ODMgMi4yMzUyNiA0LjIxIDIuMjM1MjYgNS4wMTgzM1Y2LjIwNDE3SDIuMjIxMVYxMEMyLjIyMTEgMTQuMjkgNS43MDY0IDE3Ljc3NzUgOS45OTM3IDE3Ljc3NzVDMTQuMjgxIDE3Ljc3NzUgMTcuNzY2MyAxNC4yOSAxNy43NjYzIDEwVjYuMjA0MTdIMTcuNzUyMVY1LjAxODMzQzE3Ljc1MjEgNC4yMSAxOC40MDU5IDMuNTU1ODMgMTkuMjE0NiAzLjU1NTgzWiIgZmlsbD0idXJsKCNwYWludDBfbGluZWFyXzIwOF81ODczKSIvPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTkuOTkzNyAxNi40NDQyQzYuNDQyNjEgMTYuNDQ0MiAzLjU1MzU5IDEzLjU1NDIgMy41NTM1OSAxMFY0LjY2NjY3QzMuNTUyNzEgNC4wMTg3IDMuMjk1MDggMy4zOTc1MyAyLjgzNzE5IDIuOTM5MzVDMi4zNzkzIDIuNDgxMTcgMS43NTg1MiAyLjIyMzM4IDEuMTEwOTcgMi4yMjI1SDBWMEgxLjExMDk3QzMuNjgxMDEgMCA1Ljc3NDY5IDIuMDk0MTcgNS43NzQ2OSA0LjY2NjY3VjEwQzUuNzc1NTggMTEuMTE5NSA2LjIyMDMzIDEyLjE5MjggNy4wMTEzNCAxMi45ODQ1QzcuODAyMzQgMTMuNzc2MSA4Ljg3NDk1IDE0LjIyMTQgOS45OTM3IDE0LjIyMjVDMTEuMTEyNiAxNC4yMjE2IDEyLjE4NTQgMTMuNzc2NSAxMi45NzY2IDEyLjk4NDhDMTMuNzY3OCAxMi4xOTMxIDE0LjIxMjcgMTEuMTE5NiAxNC4yMTM1IDEwVjQuNjY2NjdDMTQuMjEzNSAyLjA5NDE3IDE2LjMwNjQgMCAxOC44NzczIDBIMTkuOTg3NFYyLjIyMjVIMTguODc3M0MxOC4yMjk2IDIuMjIzMTYgMTcuNjA4NiAyLjQ4MDg2IDE3LjE1MDUgMi45MzkwNkMxNi42OTI0IDMuMzk3MjYgMTYuNDM0NyA0LjAxODU2IDE2LjQzMzggNC42NjY2N1YxMEMxNi40MzM4IDEzLjU1NDIgMTMuNTQ1NiAxNi40NDQyIDkuOTkzNyAxNi40NDQyWk0xOS4yMTQ2IDMuNTU1ODNIMTkuOTg3NFYxMEMxOS45ODc0IDE1LjUxNSAxNS41MDQ0IDIwIDkuOTkzNyAyMEM0LjQ4MjE4IDIwIDAgMTUuNTE1IDAgMTBWMy41NTU4M0gwLjc3Mjg0NkMxLjU4MDY3IDMuNTU1ODMgMi4yMzUyNiA0LjIxIDIuMjM1MjYgNS4wMTgzM1Y2LjIwNDE3SDIuMjIxMVYxMEMyLjIyMTEgMTQuMjkgNS43MDY0IDE3Ljc3NzUgOS45OTM3IDE3Ljc3NzVDMTQuMjgxIDE3Ljc3NzUgMTcuNzY2MyAxNC4yOSAxNy43NjYzIDEwVjYuMjA0MTdIMTcuNzUyMVY1LjAxODMzQzE3Ljc1MjEgNC4yMSAxOC40MDU5IDMuNTU1ODMgMTkuMjE0NiAzLjU1NTgzWiIgZmlsbD0idXJsKCNwYWludDFfbGluZWFyXzIwOF81ODczKSIvPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTI4LjkwNDMgMTAuMTYzOFYzLjA0MzAxSDMyLjUxODdWOS45NzgwMUMzMi41MTg3IDExLjYxOCAzMy41NDMgMTIuNzkzIDM0Ljk5NTUgMTIuNzkzQzM2LjQ0OTUgMTIuNzkzIDM3LjQ3MzkgMTEuNjE4IDM3LjQ3MzkgOS45NzgwMVYzLjA0MzAxSDQxLjA4ODNWMTAuMTY0N0M0MS4wODgzIDEzLjYzMTMgMzguNTczMiAxNi4wNzMgMzQuOTk1NSAxNi4wNzNDMzEuNDE5NCAxNi4wNzMgMjguOTA0MyAxMy42MzEzIDI4LjkwNDMgMTAuMTY0N1YxMC4xNjM4Wk00Mi4yMTkyIDEzLjkxMDVMNDQuMjMxMyAxMS41MDU1QzQ1LjUzNTUgMTIuNTMwNSA0Ni45NTEzIDEzLjA3MjIgNDguNDYwMyAxMy4wNzIyQzQ5LjQ0OCAxMy4wNzIyIDQ5Ljk2OTQgMTIuNzM1NSA0OS45Njk0IDEyLjE3NTVDNDkuOTY5NCAxMS41NjIyIDQ5LjUyMyAxMS40Njg4IDQ3Ljc1MjQgMTEuMDU4OEM0NC45NzU4IDEwLjQyMzggNDIuODMzOSA5LjY5NzE4IDQyLjgzMzkgNy4wMzIxOEM0Mi44MzM5IDQuNDc3MTggNDQuODQ1OSAyLjgxODg1IDQ3Ljg4MjMgMi44MTg4NUM1MC4wOTkzIDIuODE4ODUgNTEuODMxNSAzLjQxNTUxIDUzLjI0OSA0LjU1MjE4TDUxLjQ0MTggNy4xMDU1MUM1MC4yNDkyIDYuMjQ4ODUgNDguOTQ1IDUuODIwNTEgNDcuNzg5MSA1LjgyMDUxQzQ2LjkxNDYgNS44MjA1MSA0Ni40ODY2IDYuMTczODUgNDYuNDg2NiA2LjY1ODg1QzQ2LjQ4NjYgNy4zMTIxOCA0Ni45MzI5IDcuNTE3MTggNDguNzU4NSA3LjkwNzE4QzUxLjczODIgOC41NDIxOCA1My42MDIxIDkuMzQzODUgNTMuNjAyMSAxMS43ODU1QzUzLjYwMjEgMTQuNDg4OCA1MS41MzM0IDE2LjA3MjIgNDguMzMwNCAxNi4wNzIyQzQ2LjAyMDIgMTYuMDcyMiA0My44Mzk5IDE1LjM0NTUgNDIuMjE5MiAxMy45MTA1Wk01OC44MzM4IDYuMjY4MDFWNy43MDMwMUg2NC45MjY2VjEwLjkyOEg1OC44MzM4VjEyLjYyNDdINjUuNTIyOVYxNS44NDk3SDU1LjIxOTRWMy4wNDMwMUg2NS41MjI5VjYuMjY4MDFINTguODMzOFpNNzAuOTU3IDguNzA5NjhINzMuMTczOUM3NC4wMzE3IDguNzA5NjggNzQuNjQ2MyA4LjIwNjM1IDc0LjY0NjMgNy41MTYzNUM3NC42NDYzIDYuODI2MzUgNzQuMDMxNyA2LjMyMzAxIDczLjE3MzkgNi4zMjMwMUg3MC45NTdWOC43MDk2OFpNNzQuNzc2MiAxNS44NDk3TDcyLjA3NDYgMTEuOTg5N0g3MC45NTdWMTUuODQ5N0g2Ny4zNDI2VjMuMDQzMDFINzMuNDcyQzc2LjM0MDIgMy4wNDMwMSA3OC4zNzIzIDQuODg4MDEgNzguMzcyMyA3LjUxNjM1Qzc4LjM3MjMgOS4zNDMwMSA3Ny40MDI5IDEwLjc3OTcgNzUuODM4OSAxMS41MDYzTDc4Ljg5MzYgMTUuODQ5N0g3NC43NzYyWk03OS44OTYzIDMuMDQzMDFIODEuNTM1M0w4NS4wNzQ3IDEzLjQwNzJMODguNDY1OSAzLjA0MjE4SDkwLjA4NjZMOTMuNDc2MSAxMy40MDcyTDk3LjAxNTUgMy4wNDIxOEg5OC42NTYyTDk0LjI3NzMgMTUuODQ4OEg5Mi44NDMyTDg5LjI4NTQgNC45NDM4NUw4NS43MDc3IDE1Ljg0ODhIODQuMjczNkw3OS44OTYzIDMuMDQzMDFaTTEwOC41OTggMTEuNTYyMkwxMDUuNjM2IDQuODMyMThMMTAyLjY1NCAxMS41NjIySDEwOC41OTdIMTA4LjU5OFpNMTA5LjE5NCAxMi45NDIySDEwMi4wNThMMTAwLjc3MiAxNS44NDg4SDk5LjE5TDEwNC44MzUgMy4wNDIxOEgxMDYuNDE3TDEwOS4xOTQgOS4zNDIxOEwxMDkuMzk1IDkuNzk4ODVMMTEwLjE3MyAxMS41NjIySDEwOC41OThIMTEwLjE3NEwxMTIuMDYzIDE1Ljg0ODhIMTEwLjQ3OUwxMDkuMTk1IDEyLjk0MjJIMTA5LjE5NFoiIGZpbGw9IiMyMzE0NDkiLz4KPG1hc2sgaWQ9Im1hc2swXzIwOF81ODczIiBzdHlsZT0ibWFzay10eXBlOmFscGhhIiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSIxMTIiIHk9IjMiIHdpZHRoPSIxMyIgaGVpZ2h0PSIxMyI+CjxwYXRoIGQ9Ik0xMTIuMzM4IDMuMDQwNTNIMTI0LjE2N1YxNS44NDcySDExMi4zMzhWMy4wNDA1M1oiIGZpbGw9IndoaXRlIi8+CjwvbWFzaz4KPGcgbWFzaz0idXJsKCNtYXNrMF8yMDhfNTg3MykiPgo8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTExNy40OTggMTAuNjI3MkwxMTIuMzM4IDMuMDQwNTNIMTE0LjE0NUwxMTguMjYyIDkuMjQ3MTlMMTIyLjQxNyAzLjA0MDUzSDEyNC4xNjdMMTE5LjAyNSAxMC42MjcyVjE1Ljg0NzJIMTE3LjQ5OFYxMC42MjcyWiIgZmlsbD0iIzIzMTQ0OSIvPgo8L2c+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9InBhaW50MF9saW5lYXJfMjA4XzU4NzMiIHgxPSIyLjAxNDczIiB5MT0iMy4wNTY4IiB4Mj0iMTQuNTUxMyIgeTI9IjIwLjE5MDciIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0iIzZBNjdGNSIvPgo8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzRjNDQUUiLz4KPC9saW5lYXJHcmFkaWVudD4KPGxpbmVhckdyYWRpZW50IGlkPSJwYWludDFfbGluZWFyXzIwOF81ODczIiB4MT0iNS41Mjk4NSIgeTE9IjAuNDMzMzMzIiB4Mj0iMTguMTMyMiIgeTI9IjE3LjYyNTgiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0iIzAzQkNGRiIvPgo8c3RvcCBvZmZzZXQ9IjAuNTEiIHN0b3AtY29sb3I9IiMwMjRGRkYiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRjkwMEZGIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+Cg==" alt="Logo" style="width: 124px; height: 100%; margin-right: 10px; margin-top: 8px;">
+            <p class="usw_banner_text"><?php _e('Visit the UserWay Dashboard for detailed insights and remediation options', 'userway'); ?></p>
+            <a class="uw_button" id="plugin-button-notice" href="https://manage.userway.org/" target="_blank"><?php _e('Go to Dashboard', 'userway'); ?></a>
+        </div>
+    <?php }
+}
+add_action( 'admin_notices', 'usw_userway_admin_notice' );
+
+// Hook into admin_footer to add JavaScript to set cookie on dismissal
+function usw_userway_admin_script() {
     ?>
-    <div class="notice notice-warning is-dismissible">
-		<img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iMTUwcHgiIGhlaWdodD0iMjhweCIgdmlld0JveD0iMCAwIDE1MCAyOCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4KICAgIDx0aXRsZT5sb2dvPC90aXRsZT4KICAgIDxkZWZzPgogICAgICAgIDxsaW5lYXJHcmFkaWVudCB4MT0iNi4yNjMzOTkxMyUiIHkxPSIxMC4wNjQzMDA3JSIgeDI9IjcyLjc1MTAyOTYlIiB5Mj0iMTAwLjk5MTI5OSUiIGlkPSJsaW5lYXJHcmFkaWVudC0xIj4KICAgICAgICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iIzI1QzVGRiIgb2Zmc2V0PSIwJSI+PC9zdG9wPgogICAgICAgICAgICA8c3RvcCBzdG9wLWNvbG9yPSIjMDA0OEZGIiBvZmZzZXQ9IjQ0Ljc0MDkwMDElIj48L3N0b3A+CiAgICAgICAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNDNTAwRjMiIG9mZnNldD0iMTAwJSI+PC9zdG9wPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICAgICAgPHBvbHlnb24gaWQ9InBhdGgtMiIgcG9pbnRzPSIwLjg5IDAuMTUgMTUuMDk0IDAuMTUgMTUuMDk0IDE1LjUxOCAwLjg5IDE1LjUxOCI+PC9wb2x5Z29uPgogICAgPC9kZWZzPgogICAgPGcgaWQ9IlBhZ2UtMSIgc3Ryb2tlPSJub25lIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+CiAgICAgICAgPGcgaWQ9ImxvZ28iIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAuMDAwMDAwLCAyLjAwMDAwMCkiPgogICAgICAgICAgICA8cGF0aCBkPSJNMTIuMDAwMTA2NywxOS43MzMzMzMzIEM3LjczNTYxMTI0LDE5LjczMzMzMzMgNC4yNjY4NDIwNywxNi4yNjQ1MzMzIDQuMjY2ODQyMDcsMTIgTDQuMjY2ODQyMDcsNS42IEM0LjI2Njg0MjA3LDMuOTgyOTMzMzMgMi45NTA1ODcxMSwyLjY2NjY2NjY3IDEuMzMzNTM0ODEsMi42NjY2NjY2NyBMMC4wMDAyMTMzMzE0MzYsMi42NjY2NjY2NyBMMC4wMDAyMTMzMzE0MzYsMCBMMS4zMzM1MzQ4MSwwIEM0LjQyMDQ0MDcxLDAgNi45MzM0ODUwNCwyLjUxMzA2NjY3IDYuOTMzNDg1MDQsNS42IEw2LjkzMzQ4NTA0LDEyIEM2LjkzMzQ4NTA0LDE0Ljc5NDY2NjcgOS4yMDU0NjQ4NCwxNy4wNjY2NjY3IDEyLjAwMDEwNjcsMTcuMDY2NjY2NyBDMTQuNzk0NzQ4NSwxNy4wNjY2NjY3IDE3LjA2NjcyODMsMTQuNzk0NjY2NyAxNy4wNjY3MjgzLDEyIEwxNy4wNjY3MjgzLDUuNiBDMTcuMDY2NzI4MywyLjUxMzA2NjY3IDE5LjU3OTc3MjYsMCAyMi42NjY2Nzg1LDAgTDI0LDAgTDI0LDIuNjY2NjY2NjcgTDIyLjY2NjY3ODUsMi42NjY2NjY2NyBDMjEuMDQ5NjI2MiwyLjY2NjY2NjY3IDE5LjczMzM3MTMsMy45ODI5MzMzMyAxOS43MzMzNzEzLDUuNiBMMTkuNzMzMzcxMywxMiBDMTkuNzMzMzcxMywxNi4yNjQ1MzMzIDE2LjI2NDYwMjEsMTkuNzMzMzMzMyAxMi4wMDAxMDY3LDE5LjczMzMzMzMgWiBNMjMuMDcxNzk0OSw0LjI2NjY2NjY3IEwyMy45OTk3ODY3LDQuMjY2NjY2NjcgTDIzLjk5OTc4NjcsNy40NDUzMzMzMyBMMjMuOTk5Nzg2NywxMiBDMjMuOTk5Nzg2NywxOC42MTc2IDE4LjYxNzQzNDUsMjQgMTEuOTk5ODkzMywyNCBDNS4zODIzNTIxNiwyNCAwLDE4LjYxNzYgMCwxMiBMMCw3LjQ0NTMzMzMzIEwwLDYuNzAwOCBMMCw0LjI2NjY2NjY3IEwwLjkyNzk5MTc1MSw0LjI2NjY2NjY3IEMxLjg5ODY0OTc5LDQuMjY2NjY2NjcgMi42ODM3MDk0OCw1LjA1MTczMzMzIDIuNjgzNzA5NDgsNi4wMjI0IEwyLjY4MzcwOTQ4LDcuNDQ1MzMzMzMgTDIuNjY2NjQyOTYsNy40NDUzMzMzMyBMMi42NjY2NDI5NiwxMiBDMi42NjY2NDI5NiwxNy4xNDc3MzMzIDYuODUyMjA1NzYsMjEuMzMzMzMzMyAxMS45OTk4OTMzLDIxLjMzMzMzMzMgQzE3LjE0NzU4MDksMjEuMzMzMzMzMyAyMS4zMzMxNDM3LDE3LjE0NzczMzMgMjEuMzMzMTQzNywxMiBMMjEuMzMzMTQzNyw3LjQ0NTMzMzMzIEwyMS4zMTYwNzcyLDcuNDQ1MzMzMzMgTDIxLjMxNjA3NzIsNi4wMjI0IEMyMS4zMTYwNzcyLDUuMDUxNzMzMzMgMjIuMTAxMTM2OSw0LjI2NjY2NjY3IDIzLjA3MTc5NDksNC4yNjY2NjY2NyBaIiBpZD0iQ29tYmluZWQtU2hhcGUiIGZpbGw9InVybCgjbGluZWFyR3JhZGllbnQtMSkiIGZpbGwtcnVsZT0ibm9uemVybyI+PC9wYXRoPgogICAgICAgICAgICA8cGF0aCBkPSJNMzQuNzA3LDEyLjE5NTQgTDM0LjcwNywzLjY0OTQgTDM5LjA0NywzLjY0OTQgTDM5LjA0NywxMS45NzE0IEMzOS4wNDcsMTMuOTM5NCA0MC4yNzcsMTUuMzQ5NCA0Mi4wMjEsMTUuMzQ5NCBDNDMuNzY3LDE1LjM0OTQgNDQuOTk3LDEzLjkzOTQgNDQuOTk3LDExLjk3MTQgTDQ0Ljk5NywzLjY0OTQgTDQ5LjMzNywzLjY0OTQgTDQ5LjMzNywxMi4xOTU0IEM0OS4zMzcsMTYuMzU1NCA0Ni4zMTcsMTkuMjg1NCA0Mi4wMjEsMTkuMjg1NCBDMzcuNzI3LDE5LjI4NTQgMzQuNzA3LDE2LjM1NTQgMzQuNzA3LDEyLjE5NTQiIGlkPSJGaWxsLTMiIGZpbGw9IiMyMzE0NDkiIGZpbGwtcnVsZT0ibm9uemVybyI+PC9wYXRoPgogICAgICAgICAgICA8cGF0aCBkPSJNNTAuNjk1NCwxNi42OTE0IEw1My4xMTE0LDEzLjgwNTQgQzU0LjY3NzQsMTUuMDM1NCA1Ni4zNzc0LDE1LjY4NTQgNTguMTg5NCwxNS42ODU0IEM1OS4zNzU0LDE1LjY4NTQgNjAuMDAxNCwxNS4yODE0IDYwLjAwMTQsMTQuNjA5NCBDNjAuMDAxNCwxMy44NzM0IDU5LjQ2NTQsMTMuNzYxNCA1Ny4zMzk0LDEzLjI2OTQgQzU0LjAwNTQsMTIuNTA3NCA1MS40MzM0LDExLjYzNTQgNTEuNDMzNCw4LjQzNzQgQzUxLjQzMzQsNS4zNzE0IDUzLjg0OTQsMy4zODE0IDU3LjQ5NTQsMy4zODE0IEM2MC4xNTc0LDMuMzgxNCA2Mi4yMzc0LDQuMDk3NCA2My45Mzk0LDUuNDYxNCBMNjEuNzY5NCw4LjUyNTQgQzYwLjMzNzQsNy40OTc0IDU4Ljc3MTQsNi45ODM0IDU3LjM4MzQsNi45ODM0IEM1Ni4zMzM0LDYuOTgzNCA1NS44MTk0LDcuNDA3NCA1NS44MTk0LDcuOTg5NCBDNTUuODE5NCw4Ljc3MzQgNTYuMzU1NCw5LjAxOTQgNTguNTQ3NCw5LjQ4NzQgQzYyLjEyNTQsMTAuMjQ5NCA2NC4zNjM0LDExLjIxMTQgNjQuMzYzNCwxNC4xNDE0IEM2NC4zNjM0LDE3LjM4NTQgNjEuODc5NCwxOS4yODU0IDU4LjAzMzQsMTkuMjg1NCBDNTUuMjU5NCwxOS4yODU0IDUyLjY0MTQsMTguNDEzNCA1MC42OTU0LDE2LjY5MTQiIGlkPSJGaWxsLTUiIGZpbGw9IiMyMzE0NDkiIGZpbGwtcnVsZT0ibm9uemVybyI+PC9wYXRoPgogICAgICAgICAgICA8cG9seWdvbiBpZD0iRmlsbC03IiBmaWxsPSIjMjMxNDQ5IiBmaWxsLXJ1bGU9Im5vbnplcm8iIHBvaW50cz0iNzAuNjQ0NiA3LjUxOTYgNzAuNjQ0NiA5LjI0MTYgNzcuOTYwNiA5LjI0MTYgNzcuOTYwNiAxMy4xMTE2IDcwLjY0NDYgMTMuMTExNiA3MC42NDQ2IDE1LjE0NzYgNzguNjc2NiAxNS4xNDc2IDc4LjY3NjYgMTkuMDE3NiA2Ni4zMDQ2IDE5LjAxNzYgNjYuMzA0NiAzLjY0OTYgNzguNjc2NiAzLjY0OTYgNzguNjc2NiA3LjUxOTYiPjwvcG9seWdvbj4KICAgICAgICAgICAgPHBhdGggZD0iTTg1LjIwMjIsMTAuNDUwMiBMODcuODY0MiwxMC40NTAyIEM4OC44OTQyLDEwLjQ1MDIgODkuNjMyMiw5Ljg0NjIgODkuNjMyMiw5LjAxODIgQzg5LjYzMjIsOC4xOTAyIDg4Ljg5NDIsNy41ODYyIDg3Ljg2NDIsNy41ODYyIEw4NS4yMDIyLDcuNTg2MiBMODUuMjAyMiwxMC40NTAyIFogTTg5Ljc4ODIsMTkuMDE4MiBMODYuNTQ0MiwxNC4zODYyIEw4NS4yMDIyLDE0LjM4NjIgTDg1LjIwMjIsMTkuMDE4MiBMODAuODYyMiwxOS4wMTgyIEw4MC44NjIyLDMuNjUwMiBMODguMjIyMiwzLjY1MDIgQzkxLjY2NjIsMy42NTAyIDk0LjEwNjIsNS44NjQyIDk0LjEwNjIsOS4wMTgyIEM5NC4xMDYyLDExLjIxMDIgOTIuOTQyMiwxMi45MzQyIDkxLjA2NDIsMTMuODA2MiBMOTQuNzMyMiwxOS4wMTgyIEw4OS43ODgyLDE5LjAxODIgWiIgaWQ9IkZpbGwtOSIgZmlsbD0iIzIzMTQ0OSIgZmlsbC1ydWxlPSJub256ZXJvIj48L3BhdGg+CiAgICAgICAgICAgIDxwb2x5Z29uIGlkPSJGaWxsLTExIiBmaWxsPSIjMjMxNDQ5IiBmaWxsLXJ1bGU9Im5vbnplcm8iIHBvaW50cz0iOTUuOTM1NiAzLjY0OTQgOTcuOTAzNiAzLjY0OTQgMTAyLjE1MzYgMTYuMDg3NCAxMDYuMjI1NiAzLjY0OTQgMTA4LjE3MTYgMy42NDk0IDExMi4yNDE2IDE2LjA4NzQgMTE2LjQ5MTYgMy42NDk0IDExOC40NjE2IDMuNjQ5NCAxMTMuMjAzNiAxOS4wMTc0IDExMS40ODE2IDE5LjAxNzQgMTA3LjIwOTYgNS45MzE0IDEwMi45MTM2IDE5LjAxNzQgMTAxLjE5MTYgMTkuMDE3NCI+PC9wb2x5Z29uPgogICAgICAgICAgICA8cGF0aCBkPSJNMTMwLjM5OTQsMTMuODczIEwxMjYuODQzNCw1Ljc5NyBMMTIzLjI2MzQsMTMuODczIEwxMzAuMzk5NCwxMy44NzMgWiBNMTMxLjExNTQsMTUuNTI5IEwxMjIuNTQ3NCwxNS41MjkgTDEyMS4wMDM0LDE5LjAxNyBMMTE5LjEwMzQsMTkuMDE3IEwxMjUuODgxNCwzLjY0OSBMMTI3Ljc4MTQsMy42NDkgTDEzMS4xMTU0LDExLjIwOSBMMTMxLjM1NzQsMTEuNzU3IEwxMzIuMjkxNCwxMy44NzMgTDEzMC4zOTk0LDEzLjg3MyBMMTMyLjI5MTQsMTMuODczIEwxMzQuNTU5NCwxOS4wMTcgTDEzMi42NTc0LDE5LjAxNyBMMTMxLjExNTQsMTUuNTI5IFoiIGlkPSJGaWxsLTEzIiBmaWxsPSIjMjMxNDQ5IiBmaWxsLXJ1bGU9Im5vbnplcm8iPjwvcGF0aD4KICAgICAgICAgICAgPGcgaWQ9Ikdyb3VwLTE3IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMzQuMDAwMDAwLCAzLjUwMDAwMCkiPgogICAgICAgICAgICAgICAgPGcgaWQ9IkZpbGwtMTUtQ2xpcHBlZCI+CiAgICAgICAgICAgICAgICAgICAgPG1hc2sgaWQ9Im1hc2stMyIgZmlsbD0id2hpdGUiPgogICAgICAgICAgICAgICAgICAgICAgICA8dXNlIHhsaW5rOmhyZWY9IiNwYXRoLTIiPjwvdXNlPgogICAgICAgICAgICAgICAgICAgIDwvbWFzaz4KICAgICAgICAgICAgICAgICAgICA8ZyBpZD0icGF0aC0yIj48L2c+CiAgICAgICAgICAgICAgICAgICAgPHBvbHlnb24gaWQ9IkZpbGwtMTUiIGZpbGw9IiMyMzE0NDkiIGZpbGwtcnVsZT0ibm9uemVybyIgbWFzaz0idXJsKCNtYXNrLTMpIiBwb2ludHM9IjcuMDg2IDkuMjU0IDAuODkgMC4xNSAzLjA2IDAuMTUgOC4wMDQgNy41OTggMTIuOTkyIDAuMTUgMTUuMDk0IDAuMTUgOC45MiA5LjI1NCA4LjkyIDE1LjUxOCA3LjA4NiAxNS41MTgiPjwvcG9seWdvbj4KICAgICAgICAgICAgICAgIDwvZz4KICAgICAgICAgICAgPC9nPgogICAgICAgIDwvZz4KICAgIDwvZz4KPC9zdmc+" alt="Logo" style="width: 130px; height: 100%; float: left; margin-right: 10px; margin-top: 8px;">
-        <p><?php _e('There are <b> <span class="issue_number"></span> </b> accessibility red flags occuring on your site. Head straight over to our Dashboard to quickly get them fixed.', 'userway'); ?></p>
-        <a class="uw_button" href="../wp-admin/admin.php?page=userway"><?php _e('Fix accessibility issues now', 'userway'); ?></a>
-    </div>
-    <style>
-        .uw_button {
-            align-items: center;
-            background-color: #0048ff;
-            border: 2px solid #0048ff;
-            border-radius: 100vmax;
-            color: #fff;
-            display: flex;
-            font-size: 14px;
-            font-weight: 600;
-            justify-content: center;
-            letter-spacing: -.2px;
-            line-height: 16px;
-            min-width: 0;
-            padding: 15px 20px;
-            position: relative;
-            width: 180px;
-            text-decoration: none;
-            margin-top: 15px;
-            margin-bottom: 15px;
-            transition: 0.3s;
-        }
-        .uw_button:hover {
-            color: #fff;
-            -webkit-box-shadow: 2px 2px 10px rgba(59, 76, 121, .5);
-            box-shadow: 2px 2px 10px rgba(59, 76, 121, .5);
-
-        }
-    </style>
+    <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wrap the code in a setTimeout to ensure it's executed after the DOM is fully loaded
+        setTimeout(function() {
+            var notice = document.getElementById('plugin-activation-notice');
+            if (notice) {
+                var dismissButton = notice.querySelector('.notice-dismiss');
+                if (dismissButton) {
+                    dismissButton.addEventListener('click', function(event) {
+                        // Set a timeout of 0.5 seconds before setting the cookie
+                        setTimeout(function() {
+                            // Set a cookie that the notice was dismissed
+                            document.cookie = "usw_userway_activation_notice_dismissed=true; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/";
+                        }, 500);
+                    });
+                } else {
+                }
+            } else {
+            }
+        }, 1000); // Delay execution by 1 second to ensure the DOM is fully loaded
+    });
+    </script>
     <?php
-
-    // Update the flag to indicate that the notice has been displayed
-    update_option('userway_notice_displayed', true);
 }
-add_action('admin_notices', 'admin_notice__success');
-function userway_plugin_activation_callback() {
-    // Set the flag to false upon activation
-    update_option('userway_notice_displayed', false);
+add_action('admin_footer', 'usw_userway_admin_script');
+
+// Function to set cookie value to "false" on plugin deactivation
+function usw_userway_deactivation_notice() {
+    // Set cookie value to "false"
+    setcookie( 'usw_userway_activation_notice_dismissed', '', time() - 3600, '/'); // Set expiry time far in the future
 }

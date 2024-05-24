@@ -1,0 +1,61 @@
+#plugin-activation-notice {
+    background-image: url('../images/bg.png');
+    background-repeat: no-repeat;
+    background-position: center right;
+    background-size: cover;
+    padding: 5.5px 15px;
+    border-left: 0;
+    border: 1px solid #c3c4c7;
+}
+#plugin-activation-notice .notice-dismiss:before {
+    color: #000;
+}
+.usw_banner_text {
+    color: #4F5463;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 120%;
+    letter-spacing: 0.5px;
+}
+.uw_button {
+    align-items: center;
+    background-color: #0048ff;
+    border: 2px solid #0048ff;
+    border-radius: 100vmax;
+    color: #fff;
+    display: flex;
+    font-size: 14px;
+    font-weight: 600;
+    justify-content: center;
+    letter-spacing: -.2px;
+    line-height: 16px;
+    min-width: 0;
+    padding: 8px 8px;
+    position: relative;
+    width: 180px;
+    text-decoration: none;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    transition: 0.3s;
+}
+.uw_button:after {
+    content:url('../images/arrow-right.svg');
+    width: 24px;
+    height: 24px;
+    position: relative;
+    left: 19px;
+}
+.uw_button:focus {
+   color: #fff;
+} 
+.uw_button:hover {
+    color: #fff;
+    -webkit-box-shadow: 2px 2px 10px rgba(59, 76, 121, .5);
+    box-shadow: 2px 2px 10px rgba(59, 76, 121, .5);
+}
+@media (max-width: 1200px) {
+    #plugin-activation-notice {
+        background-position: center;
+    }
+}
