@@ -34,7 +34,7 @@ function usw_userway_settings_page() {
 		}
 		if ( isset( $accountDb->state ) ) {
 			$state     = $accountDb->state ? 'true' : 'false';
-			$widgetUrl .= "&active=${state}";
+			$widgetUrl .= "&active={$state}";
 		}
 		if ( isset( $accountDb->site_id ) && $accountDb->site_id > 0 ) {
 			$widgetUrl .= "&siteId=" . $accountDb->site_id;

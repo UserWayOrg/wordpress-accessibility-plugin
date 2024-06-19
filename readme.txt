@@ -89,6 +89,8 @@ change Admin menu location and icon
 improve README file
 = 2.5.4 =
 Implementation of Compliant Admin Notice
+= 2.5.5 =
+Admin banner CTA button event added
 
 *
 *Added translations for the plugin:

@@ -18,8 +18,13 @@ function usw_userway_enqueue_styles() {
     // Enqueue the stylesheet
     wp_enqueue_style('usw-userway-styles');
 }
-
 add_action('admin_enqueue_scripts', 'usw_userway_enqueue_styles');
+
+function usw_userway_enqueue_script() {
+    // Enqueue the JavaScript file with dependencies on jQuery and any other scripts
+    wp_enqueue_script('api-script', plugin_dir_url(__FILE__) . 'api-script.js', array('jquery'), '1.0', true);
+}
+add_action('admin_enqueue_scripts', 'usw_userway_enqueue_script');
 
 // Hook into plugin activation to add custom admin notice
 function usw_userway_activation_notice() {
