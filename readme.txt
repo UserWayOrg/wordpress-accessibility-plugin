@@ -87,9 +87,9 @@ change endpoint to non permalinks
 change Admin menu location and icon
 = 2.5.0 =
 improve README file
-= 2.5.4 =
+= 2.5.1 =
 Implementation of Compliant Admin Notice
-= 2.5.5 =
+= 2.5.2 =
 Admin banner CTA button event added
 
 *
